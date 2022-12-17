@@ -1,0 +1,19 @@
+FROM mcr.microsoft.com/dotnet/aspnet:5.0.0-nanoserver-1809 AS base
+WORKDIR /app
+RUN mkdir logs
+VOLUME "c:\\app\\logs"
+EXPOSE 80 443 16381
+
+FROM mcr.microsoft.com/dotnet/sdk:5.0-nanoserver-1809 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore "Template.Service.csproj"
+RUN dotnet build "Template.Service.csproj" -c Release -o /app
+
+FROM build AS publish
+RUN dotnet publish "Template.Service.csproj" -c Release -o /app
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app .
+ENTRYPOINT ["dotnet", "Template.Service.dll"]

@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Cinema.Backend.Service.Models;
+using Cinema.Backend.Service.Models.Core;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Identity;
 using Serilog;
 using Template.Service.Configuration;
 using Template.Service.Setup;
@@ -15,7 +18,6 @@ namespace Template.Service
     public class Program
     {
         private static DateTime? _startTime = null;
-        private static string _appInsightsInstrumentationKey = null;
 
         /// <summary>
         /// The main entry point for the service.
@@ -34,8 +36,7 @@ namespace Template.Service
                 .AddJsonFile("appsettings.json", optional: false)
                 .AddJsonFile($"appsettings.{tempEnv}.json", optional: true)
                 .Build();
-            Program._appInsightsInstrumentationKey = tempConfig.GetValue<string>("ApplicationInsights:InstrumentationKey");
-
+            
             // Create and configure the web service
             var webHost = CreateWebHostBuilder(args).Build();
 
@@ -43,7 +44,6 @@ namespace Template.Service
             var logger = new LoggerConfiguration()
                .MinimumLevel.Debug()
                .WriteTo.Console()
-               .WriteTo.ApplicationInsights(new TelemetryConfiguration { InstrumentationKey = _appInsightsInstrumentationKey }, TelemetryConverter.Traces)
                .CreateLogger();
             var configuration = webHost.Services.GetRequiredService<IConfiguration>();
 
@@ -123,7 +123,6 @@ namespace Template.Service
                 var mongoConnection = configuration.GetMongoConnectionString();
                 var databaseName = configuration.GetMongoDatabaseName();
                 await mongoDbSetup.InitializeAsync(mongoConnection, databaseName);
-
             }
             catch (Exception exception)
             {

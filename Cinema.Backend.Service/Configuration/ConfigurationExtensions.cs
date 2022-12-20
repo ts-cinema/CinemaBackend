@@ -141,21 +141,7 @@
         }
 
         /// <summary>
-        /// Gets the service's user name for basic auth protocol.
-        /// </summary>
-        /// <param name="configuration">
-        /// Represents a set of key:value configuration properties.
-        /// </param>
-        /// <returns>
-        /// A string containing the service's user name.
-        /// </returns>
-        public static string GetServiceUserName(this IConfiguration configuration)
-        {
-            return configuration["Security:ServiceUsername"];
-        }
-
-        /// <summary>
-        /// Gets the service's password for basic auth protocol.
+        /// Gets the service's token signing key.
         /// </summary>
         /// <param name="configuration">
         /// Represents a set of key:value configuration properties.
@@ -163,9 +149,24 @@
         /// <returns>
         /// A string containing the service's password.
         /// </returns>
-        public static string GetServicePassword(this IConfiguration configuration)
+        public static string GetTokenSigningKey(this IConfiguration configuration)
         {
-            return configuration["Security:ServicePassword"];
+            return configuration["Security:TokenSigningKey"];
+        }
+
+        public static string GetAdminEmail(this IConfiguration configuration)
+        {
+            return configuration["Security:AdminCredentials:Email"];
+        }
+
+        public static string GetAdminUserName(this IConfiguration configuration)
+        {
+            return configuration["Security:AdminCredentials:UserName"];
+        }
+
+        public static string GetAdminPassword(this IConfiguration configuration)
+        {
+            return configuration["Security:AdminCredentials:Password"];
         }
     }
 }

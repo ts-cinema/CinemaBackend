@@ -1,7 +1,13 @@
-﻿using Envista.Template.Service.Web;
+﻿using Cinema.Backend.Service.Models;
+using Cinema.Backend.Service.Services;
+using Cinema.Backend.Service.Setup;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Converters;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Template.Service.Configuration;
 using Template.Service.Web;
 
@@ -13,6 +19,8 @@ namespace Template.Service
     [ExcludeFromCodeCoverage]
     public class Startup
     {
+        private readonly IConfiguration _configuration;
+
         /// <summary>
         /// Initialize a new instance of the Startup class.
         /// </summary>
@@ -26,6 +34,8 @@ namespace Template.Service
 
             // Cache the web host's logger
             Program.Logger = logger;
+
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -39,28 +49,51 @@ namespace Template.Service
         /// </remarks>
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddScoped<IUserService, UserService>();
+
+            services.AddIdentity<User, Role>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequiredLength = 8;
+                options.SignIn.RequireConfirmedEmail = true;
+            }).AddMongoDbStores<User, Role, Guid>(
+                _configuration.GetMongoConnectionString(), _configuration.GetMongoDatabaseName()
+             )
+            .AddDefaultTokenProviders();
+
+            services.AddAuthentication(auth =>
+            {
+                auth.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                auth.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true,
+                    ValidateIssuer = false,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configuration.GetTokenSigningKey())),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromMinutes(2), // allow for some drift in server time
+                    ValidateAudience = false
+                };
+            });
+
             // Add the Web API controllers
             services.AddControllers().AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.Converters.Add(new StringEnumConverter());
             });
 
-            // Add custom authentication services
-            //services.AddAuthentication(options =>
-            //{
-            //    options.DefaultAuthenticateScheme = CustomAuthenticationOptions.DefaultScheme;
-            //    options.DefaultChallengeScheme = CustomAuthenticationOptions.DefaultScheme;
-            //}).AddCustomAuthentication(options =>
-            //{
-            //    options.Token = "token";
-            //});
 
             // Add CORs services
             services.AddCors(options =>
             {
-                options.AddPolicy("Template", builder =>
+                options.AddPolicy("Cinema", builder =>
                 {
-                    builder.WithOrigins("http://*.template.com", "https://*.template.com", "http://localhost", "https://localhost")
+                    builder.WithOrigins("http://*.com", "http://localhost", "https://localhost")
                     .SetIsOriginAllowedToAllowWildcardSubdomains()
                     .AllowAnyMethod()
                     .AllowAnyHeader()
@@ -141,13 +174,28 @@ namespace Template.Service
             app.UseMiddleware(typeof(WebApiExceptionHandler));
 
             // Enable CORs
-            app.UseCors("Template");
+            app.UseCors("Cinema");
 
             // Executes the endpoint that was selected by routing.
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
             });
+
+            SeetUsersAndRoles(app, configuration);
+        }
+
+        private async void SeetUsersAndRoles(IApplicationBuilder app, IConfiguration configuration)
+        {
+            using IServiceScope serviceScope = app.ApplicationServices
+                .GetRequiredService<IServiceScopeFactory>()
+                .CreateScope();
+
+            var userManager = serviceScope.ServiceProvider.GetService<UserManager<User>>();
+            var roleManager = serviceScope.ServiceProvider.GetService<RoleManager<Role>>();
+
+            await DbHelper.SeedUserRoles(roleManager);
+            await DbHelper.SeedAdminUser(userManager, configuration);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Cinema.Backend.Service.Models;
+using Cinema.Backend.Service.Models.DTOs;
 using Envista.Core.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,13 +25,13 @@ namespace Cinema.Backend.Service.Controllers
         ///  GET movies?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<Movie>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<MovieWithRating>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<IEnumerable<Movie>>> GetAll([FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
+        public async Task<ActionResult<IEnumerable<MovieWithRating>>> GetAll([FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
         {
-            var list = new List<Movie>();
+            var list = new List<MovieWithRating>();
 
             try
             {
@@ -42,17 +43,20 @@ namespace Cinema.Backend.Service.Controllers
 
                 long totalCount = 0;
                 var movies = new List<Movie>();
+                var ratings = new List<Rating>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
                     // Get the total count of tickets
                     totalCount = await unitOfWork.Movies.GetCountAsync();
 
-                    // Get the tickets
+                    // Get the movies
                     movies = await unitOfWork.Movies.GetAsync(index, count, order, direction);
+
+                    ratings = await unitOfWork.Ratings.GetAsync(index, count, order, direction);
                 }
 
-                list = new List<Movie>(movies);
+                list = CalculateRatingForMovies(movies, ratings);
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
             catch (Exception exception)
@@ -69,13 +73,13 @@ namespace Cinema.Backend.Service.Controllers
         /// </summary>
         [HttpGet("search/{key}/{value}")]
         [Authorize]
-        [ProducesResponseType(typeof(IEnumerable<Movie>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<MovieWithRating>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<IEnumerable<Movie>>> Search([FromRoute] string key, [FromRoute] string value, [FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
+        public async Task<ActionResult<IEnumerable<MovieWithRating>>> Search([FromRoute] string key, [FromRoute] string value, [FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
         {
-            var list = new List<Movie>();
+            var list = new List<MovieWithRating>();
 
             try
             {
@@ -87,6 +91,7 @@ namespace Cinema.Backend.Service.Controllers
 
                 long totalCount = 0;
                 var movies = new List<Movie>();
+                var ratings = new List<Rating>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
@@ -95,9 +100,11 @@ namespace Cinema.Backend.Service.Controllers
 
                     // Get the movies that match the key and value
                     movies = await unitOfWork.Movies.GetAsync(key, value, index, count, order, direction);
+
+                    ratings = await unitOfWork.Ratings.GetAsync(index, count, order, direction);
                 }
 
-                list = new List<Movie>(movies);
+                list = CalculateRatingForMovies(movies, ratings);
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
             catch (Exception exception)
@@ -114,14 +121,16 @@ namespace Cinema.Backend.Service.Controllers
         /// </summary>
         [HttpGet("{id}")]
         [Authorize]
-        [ProducesResponseType(typeof(Movie), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MovieWithRating), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<Movie>> Get([FromRoute] Guid id)
+        public async Task<ActionResult<MovieWithRating>> Get([FromRoute] Guid id)
         {
             Movie? movie = null;
+            var movieWithRating = new MovieWithRating();
+            var ratings = new List<Rating>();
 
             try
             {
@@ -139,6 +148,19 @@ namespace Cinema.Backend.Service.Controllers
                     {
                         throw new ObjectNotFoundException($"A movie with the specified ID could not be found (ID: {id.ToString("N")}).");
                     }
+
+                    // calculate rating for movie
+                    ratings = await unitOfWork.Ratings.GetAsync();
+                    double rating = ratings
+                        .Where(x => x.MovieId == movie.Id)
+                        .Select(x => x.Value)
+                        .Average();
+                    movieWithRating.Id = movie.Id;
+                    movieWithRating.Title = movie.Title;
+                    movieWithRating.Description = movie.Description;
+                    movieWithRating.ReleaseDate = movie.ReleaseDate;
+                    movieWithRating.CoverUrl = movie.CoverUrl;
+                    movieWithRating.Rating = rating;
                 }
             }
             catch (Exception exception)
@@ -147,7 +169,7 @@ namespace Cinema.Backend.Service.Controllers
                 throw;
             }
 
-            return movie;
+            return movieWithRating;
         }
 
         /// <summary>
@@ -301,6 +323,29 @@ namespace Cinema.Backend.Service.Controllers
             }
 
             return result;
+        }
+
+
+        private List<MovieWithRating> CalculateRatingForMovies(List<Movie> movies, List<Rating> ratings)
+        {
+            var moviesWithRating = new List<MovieWithRating>();
+            foreach (var movie in movies)
+            {
+                double rating = ratings
+                    .Where(x => x.MovieId == movie.Id)
+                    .Select(x => x.Value)
+                    .Average();
+                moviesWithRating.Add(new MovieWithRating
+                {
+                    Id = movie.Id,
+                    Rating = rating,
+                    Title = movie.Title,
+                    Description = movie.Description,
+                    Genre = movie.Genre,
+                    ReleaseDate = movie.ReleaseDate,
+                });
+            }
+            return moviesWithRating;
         }
     }
 }

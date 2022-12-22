@@ -1,6 +1,4 @@
 ﻿using MongoDB.Driver;
-using Template.Service.Models.Person;
-using Template.Service.Models.Organization;
 using Template.Service.DAL;
 using Envista.Core.Common.System;
 using Cinema.Backend.Service.Models;
@@ -61,13 +59,6 @@ namespace Template.Service.Setup
                     _logger.Information($"The domain's '{databaseName}' MongoDB database was successfully created.");
 
                     #region Create Collections
-
-                    // Create the organizations collection
-                    await CreateOrganizationsCollection(database, databaseName);
-
-                    // Create the persons collection
-                    await CreatePersonsCollection(database, databaseName);
-
                     await CreateMoviesCollection(database, databaseName);
 
                     await CreateMovieProjectionsCollection(database, databaseName);
@@ -220,165 +211,6 @@ namespace Template.Service.Setup
             await movieProjectionsCollection.Indexes.CreateManyAsync(movieProjectionIndexes).ConfigureAwait(false);
 
             _logger.Information($"The indexes for the '{collectionName}' collection within the '{databaseName}' database were successfully created.");
-        }
-
-        /// <summary>
-        /// Creates the organizations collections within the specified database
-        /// </summary>
-        /// <param name="database">
-        /// An object representing a connection to the database.
-        /// </param>
-        /// <param name="databaseName">
-        /// A string containing the name of the database.
-        /// </param>
-        private async Task CreateOrganizationsCollection(IMongoDatabase database, string databaseName)
-        {
-            if (database == null)
-            {
-                throw new ArgumentNullException(nameof(database));
-            }
-
-            if (string.IsNullOrEmpty(databaseName))
-            {
-                throw new ArgumentException($"The specified {nameof(databaseName)} parameter is invalid.");
-            }
-
-            // Create the organizations collection
-            string collectionName = "organizations";
-            IMongoCollection<Organization> organizationsCollection = database.GetCollection<Organization>(collectionName);
-            _logger.Information($"The '{collectionName}' collection within the '{databaseName}' database was successfully created.");
-
-            var organizationIndexKeysDefinition = Builders<Organization>.IndexKeys;
-            var organizationIndexes = new List<CreateIndexModel<Organization>>();
-
-            // Create an index for the name
-            var organizationNameIndex = new CreateIndexModel<Organization>(organizationIndexKeysDefinition.Ascending(x => x.Name));
-            organizationIndexes.Add(organizationNameIndex);
-
-            // Create an index for the code
-            var organizationCodeIndex = new CreateIndexModel<Organization>(organizationIndexKeysDefinition.Ascending(x => x.Code));
-            organizationIndexes.Add(organizationCodeIndex);
-
-            // Create the indexes
-            await organizationsCollection.Indexes.CreateManyAsync(organizationIndexes).ConfigureAwait(false);
-
-            _logger.Information($"The indexes for the '{collectionName}' collection within the '{databaseName}' database were successfully created.");
-        }
-
-        /// <summary>
-        /// Creates the persons collections within the specified database
-        /// </summary>
-        /// <param name="database">
-        /// An object representing a connection to the database.
-        /// </param>
-        /// <param name="databaseName">
-        /// A string containing the name of the database.
-        /// </param>
-        private async Task CreatePersonsCollection(IMongoDatabase database, string databaseName)
-        {
-            if (database == null)
-            {
-                throw new ArgumentNullException(nameof(database));
-            }
-
-            if (string.IsNullOrEmpty(databaseName))
-            {
-                throw new ArgumentException($"The specified {nameof(databaseName)} parameter is invalid.");
-            }
-
-            // Create the persons collection
-            string collectionName = "persons";
-            IMongoCollection<Person> personsCollection = database.GetCollection<Person>(collectionName);
-            _logger.Information($"The '{collectionName}' collection within the '{databaseName}' database was successfully created.");
-
-            var personIndexKeysDefinition = Builders<Person>.IndexKeys;
-            var personIndexes = new List<CreateIndexModel<Person>>();
-
-            // Create an index for the first name
-            var personFirstNameIndex = new CreateIndexModel<Person>(personIndexKeysDefinition.Ascending(x => x.FirstName));
-            personIndexes.Add(personFirstNameIndex);
-
-            // Create an index for the last name
-            var personLastNameIndex = new CreateIndexModel<Person>(personIndexKeysDefinition.Ascending(x => x.LastName));
-            personIndexes.Add(personLastNameIndex);
-
-            // Create the indexes
-            await personsCollection.Indexes.CreateManyAsync(personIndexes).ConfigureAwait(false);
-
-            _logger.Information($"The indexes for the '{collectionName}' collection within the '{databaseName}' database were successfully created.");
-        }
-
-        /// <summary>
-        /// Populate the organizations collections within the specified database
-        /// </summary>
-        /// <param name="database">
-        /// An object representing a connection to the database.
-        /// </param>
-        /// <param name="databaseName">
-        /// A string containing the name of the database.
-        /// </param>
-        private async Task PopulateOrganizationsCollection(string connectionString, string databaseName)
-        {
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new ArgumentException($"The specified {nameof(connectionString)} parameter is invalid.");
-            }
-
-            if (string.IsNullOrEmpty(databaseName))
-            {
-                throw new ArgumentException($"The specified {nameof(databaseName)} parameter is invalid.");
-            }
-
-            // Populate the default organizations
-            using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
-            {
-                OrganizationList organizations = new OrganizationList
-                {
-                    new Organization{ Id = GuidHelper.DeriveGuid("Envista Forensics (EF)"), Name = "Envista", Code = "EF"},
-                    new Organization{ Id = GuidHelper.DeriveGuid("AREPA North America (ARNA)"), Name = "Arepa North America", Code = "ARNA"},
-                    new Organization{ Id = GuidHelper.DeriveGuid("Cor Partners (CP)"), Name = "Core Parners", Code = "CP"},
-                    new Organization{ Id = GuidHelper.DeriveGuid("Engle Martin (EM)"), Name = "Engle Martin", Code = "EM"}
-                };
-
-                await unitOfWork.Organizations.AddAsync(organizations);
-                int count = await unitOfWork.CommitAsync();
-            }
-        }
-
-        /// <summary>
-        /// Populate the persons collections within the specified database
-        /// </summary>
-        /// <param name="database">
-        /// An object representing a connection to the database.
-        /// </param>
-        /// <param name="databaseName">
-        /// A string containing the name of the database.
-        /// </param>
-        private async Task PopulatePersonsCollection(string connectionString, string databaseName)
-        {
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new ArgumentException($"The specified {nameof(connectionString)} parameter is invalid.");
-            }
-
-            if (string.IsNullOrEmpty(databaseName))
-            {
-                throw new ArgumentException($"The specified {nameof(databaseName)} parameter is invalid.");
-            }
-
-            // Populate the default persons
-            using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
-            {
-                PersonList persons = new PersonList
-                {
-                    new Person{ Id = Guid.NewGuid(), FirstName = "Joe", LastName = "Bloggs", Age = 25, Organizations = new List<string>{ "EF" } },
-                    new Person{ Id = Guid.NewGuid(), FirstName = "Mary", LastName = "Smith", Age = 40, Organizations = new List<string>{ "ARNA" } },
-                    new Person{ Id = Guid.NewGuid(), FirstName = "Jack", LastName = "Tar", Age = 30, Organizations = new List<string>{ "CP" } }
-                };
-
-                await unitOfWork.Persons.AddAsync(persons);
-                int count = await unitOfWork.CommitAsync();
-            }
         }
     }
 }

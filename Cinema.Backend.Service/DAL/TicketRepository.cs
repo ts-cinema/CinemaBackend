@@ -1,4 +1,7 @@
 ﻿using Cinema.Backend.Service.Models;
+using DnsClient;
+using Envista.Core.Common.System;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Template.Service.DAL;
 
@@ -34,57 +37,163 @@ namespace Cinema.Backend.Service.DAL
 
         public Task AddAsync(Ticket ticket)
         {
-            throw new NotImplementedException();
+            if (ticket == null)
+            {
+                throw new ArgumentNullException(nameof(ticket));
+            }
+
+            _addList.Add(ticket);
+
+            return Task.CompletedTask;
         }
 
         public Task AddAsync(List<Ticket> tickets)
         {
-            throw new NotImplementedException();
+            if (tickets == null)
+            {
+                throw new ArgumentNullException(nameof(tickets));
+            }
+
+            _addList.AddRange(tickets);
+
+            return Task.CompletedTask;
         }
 
-        public Task<List<Ticket>> GetAsync(int index = 0, int count = 100, string order = "", int direction = 0)
+        public async Task<List<Ticket>> GetAsync(int index = 0, int count = 100, string order = "", int direction = 0)
         {
-            throw new NotImplementedException();
+            List<Ticket> tickets = new List<Ticket>();
+
+            if (!string.IsNullOrEmpty(order))
+            {
+                direction = (direction >= 0) ? 1 : -1;
+
+                // Gets all persons
+                var list = await Tickets.Find(FilterDefinition<Ticket>.Empty).Sort(new BsonDocument(order, direction)).Skip(index).Limit(count).ToListAsync();
+                tickets = new List<Ticket>(list);
+            }
+            else
+            {
+                // Gets all persons
+                var list = await Tickets.Find(FilterDefinition<Ticket>.Empty).Skip(index).Limit(count).ToListAsync();
+                tickets = new List<Ticket>(list);
+            }
+
+            return tickets;
         }
 
-        public Task<List<Ticket>> GetAsync(string key, string value, int index = 0, int count = 100, string order = "", int direction = 0)
+        public async Task<List<Ticket>> GetAsync(string key, string value, int index = 0, int count = 100, string order = "", int direction = 0)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentException($"The specified {nameof(key)} parameter is invalid.");
+            }
+
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException($"The specified {nameof(value)} parameter is invalid.");
+            }
+
+            List<Ticket> tickets = new List<Ticket>();
+
+            // Parse the value
+            DataParser parser = new DataParser();
+            var result = parser.Parse(value);
+
+            // Create the filter
+            key = ((key == "id") || (key == "metadata.id")) ? "_id" : key;
+            var filter = Builders<Ticket>.Filter.Eq(key, result.Item2);
+
+            if (!string.IsNullOrEmpty(order))
+            {
+                direction = (direction >= 0) ? 1 : -1;
+
+                var list = await this.Tickets.Find(filter).Sort(new BsonDocument(order, direction)).Skip(index).Limit(count).ToListAsync();
+                tickets = new List<Ticket>(list);
+            }
+            else
+            {
+                var list = await this.Tickets.Find(filter).Skip(index).Limit(count).ToListAsync();
+                tickets = new List<Ticket>(list);
+            }
+
+            return tickets;
         }
 
-        public Task<Ticket> GetAsync(Guid id)
+        public async Task<Ticket> GetAsync(Guid id)
         {
-            throw new NotImplementedException();
+            var filter = Builders<Ticket>.Filter.Eq("_id", id);
+            var tickets = await Tickets.FindAsync(filter);
+            Ticket ticket = tickets.FirstOrDefault<Ticket>();
+
+            return ticket;
         }
 
-        public Task<long> GetCountAsync()
+        public async Task<long> GetCountAsync()
         {
-            throw new NotImplementedException();
+            return await Tickets.CountDocumentsAsync(FilterDefinition<Ticket>.Empty);
         }
 
-        public Task<long> GetCountAsync(string key, string value)
+        public async Task<long> GetCountAsync(string key, string value)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentException($"The specified {nameof(key)} parameter is invalid.");
+            }
+
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException($"The specified {nameof(value)} parameter is invalid.");
+            }
+
+            // Parse the value
+            DataParser parser = new DataParser();
+            var result = parser.Parse(value);
+
+            // Build the filter
+            var filter = Builders<Ticket>.Filter.Eq(key, result.Item2);
+
+            // Get the person count
+            long count = await this.Tickets.CountDocumentsAsync(filter);
+
+            return count;
         }
 
         public Task RemoveAsync(Guid id)
         {
-            throw new NotImplementedException();
+            _removeList.Add(id);
+
+            return Task.CompletedTask;
         }
 
         public Task RemoveAsync(List<Guid> ids)
         {
-            throw new NotImplementedException();
+            _removeList.AddRange(ids);
+
+            return Task.CompletedTask;
         }
 
         public Task UpdateAsync(Ticket ticket)
         {
-            throw new NotImplementedException();
+            if (ticket == null)
+            {
+                throw new ArgumentNullException(nameof(ticket));
+            }
+
+            _updateList.Add(ticket);
+
+            return Task.CompletedTask;
         }
 
         public Task UpdateAsync(List<Ticket> tickets)
         {
-            throw new NotImplementedException();
+            if (tickets == null)
+            {
+                throw new ArgumentNullException(nameof(tickets));
+            }
+
+            _updateList.AddRange(tickets);
+
+            return Task.CompletedTask;
         }
 
         internal async Task<int> CommitAsync()

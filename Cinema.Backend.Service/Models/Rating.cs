@@ -8,6 +8,6 @@
 
         public double Value { get; set; }
 
-        //dodaj UserId
+        public Guid UserId { get; set; }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using Cinema.Backend.Service.Models;
+using DnsClient;
+using Envista.Core.Common.System;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Template.Service.DAL;
-using Template.Service.Models.Organization;
 
 namespace Cinema.Backend.Service.DAL
 {
@@ -35,57 +37,163 @@ namespace Cinema.Backend.Service.DAL
 
         public Task AddAsync(Movie movie)
         {
-            throw new NotImplementedException();
+            if (movie == null)
+            {
+                throw new ArgumentNullException(nameof(movie));
+            }
+
+            _addList.Add(movie);
+
+            return Task.CompletedTask;
         }
 
         public Task AddAsync(List<Movie> movies)
         {
-            throw new NotImplementedException();
+            if (movies == null)
+            {
+                throw new ArgumentNullException(nameof(movies));
+            }
+
+            _addList.AddRange(movies);
+
+            return Task.CompletedTask;
         }
 
-        public Task<List<Movie>> GetAsync(int index = 0, int count = 100, string order = "", int direction = 0)
+        public async Task<List<Movie>> GetAsync(int index = 0, int count = 100, string order = "", int direction = 0)
         {
-            throw new NotImplementedException();
+            List<Movie> movies = new List<Movie>();
+
+            if (!string.IsNullOrEmpty(order))
+            {
+                direction = (direction >= 0) ? 1 : -1;
+
+                // Gets all persons
+                var list = await Movies.Find(FilterDefinition<Movie>.Empty).Sort(new BsonDocument(order, direction)).Skip(index).Limit(count).ToListAsync();
+                movies = new List<Movie>(list);
+            }
+            else
+            {
+                // Gets all persons
+                var list = await Movies.Find(FilterDefinition<Movie>.Empty).Skip(index).Limit(count).ToListAsync();
+                movies = new List<Movie>(list);
+            }
+
+            return movies;
         }
 
-        public Task<List<Movie>> GetAsync(string key, string value, int index = 0, int count = 100, string order = "", int direction = 0)
+        public async Task<List<Movie>> GetAsync(string key, string value, int index = 0, int count = 100, string order = "", int direction = 0)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentException($"The specified {nameof(key)} parameter is invalid.");
+            }
+
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException($"The specified {nameof(value)} parameter is invalid.");
+            }
+
+            List<Movie> movies = new List<Movie>();
+
+            // Parse the value
+            DataParser parser = new DataParser();
+            var result = parser.Parse(value);
+
+            // Create the filter
+            key = ((key == "id") || (key == "metadata.id")) ? "_id" : key;
+            var filter = Builders<Movie>.Filter.Eq(key, result.Item2);
+
+            if (!string.IsNullOrEmpty(order))
+            {
+                direction = (direction >= 0) ? 1 : -1;
+
+                var list = await this.Movies.Find(filter).Sort(new BsonDocument(order, direction)).Skip(index).Limit(count).ToListAsync();
+                movies = new List<Movie>(list);
+            }
+            else
+            {
+                var list = await this.Movies.Find(filter).Skip(index).Limit(count).ToListAsync();
+                movies = new List<Movie>(list);
+            }
+
+            return movies;
         }
 
-        public Task<Movie> GetAsync(Guid id)
+        public async Task<Movie> GetAsync(Guid id)
         {
-            throw new NotImplementedException();
+            var filter = Builders<Movie>.Filter.Eq("_id", id);
+            var movies = await Movies.FindAsync(filter);
+            Movie movie = movies.FirstOrDefault<Movie>();
+
+            return movie;
         }
 
-        public Task<long> GetCountAsync()
+        public async Task<long> GetCountAsync()
         {
-            throw new NotImplementedException();
+            return await Movies.CountDocumentsAsync(FilterDefinition<Movie>.Empty);
         }
 
-        public Task<long> GetCountAsync(string key, string value)
+        public async Task<long> GetCountAsync(string key, string value)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentException($"The specified {nameof(key)} parameter is invalid.");
+            }
+
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException($"The specified {nameof(value)} parameter is invalid.");
+            }
+
+            // Parse the value
+            DataParser parser = new DataParser();
+            var result = parser.Parse(value);
+
+            // Build the filter
+            var filter = Builders<Movie>.Filter.Eq(key, result.Item2);
+
+            // Get the person count
+            long count = await this.Movies.CountDocumentsAsync(filter);
+
+            return count;
         }
 
         public Task RemoveAsync(Guid id)
         {
-            throw new NotImplementedException();
+            _removeList.Add(id);
+
+            return Task.CompletedTask;
         }
 
         public Task RemoveAsync(List<Guid> ids)
         {
-            throw new NotImplementedException();
+            _removeList.AddRange(ids);
+
+            return Task.CompletedTask;
         }
 
         public Task UpdateAsync(Movie movie)
         {
-            throw new NotImplementedException();
+            if (movie == null)
+            {
+                throw new ArgumentNullException(nameof(movie));
+            }
+
+            _updateList.Add(movie);
+
+            return Task.CompletedTask;
         }
 
         public Task UpdateAsync(List<Movie> movies)
         {
-            throw new NotImplementedException();
+            if (movies == null)
+            {
+                throw new ArgumentNullException(nameof(movies));
+            }
+
+            _updateList.AddRange(movies);
+
+            return Task.CompletedTask;
         }
 
         internal async Task<int> CommitAsync()

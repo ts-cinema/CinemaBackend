@@ -12,6 +12,8 @@
 
         public DateTime ReleaseDate { get; set; }
 
+        public string CoverUrl { get; set; } = string.Empty;
+
         public List<Guid> MovieProjectionIds { get; set; } = new List<Guid>();
     }
 }

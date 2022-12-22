@@ -88,7 +88,7 @@ namespace Template.Service.Controllers
                 // Perform a simple idempotent action against the database
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    await unitOfWork.Persons.GetCountAsync();
+                    await unitOfWork.Movies.GetCountAsync();
                 }
             }
             catch

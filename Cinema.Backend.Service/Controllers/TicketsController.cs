@@ -1,50 +1,36 @@
-﻿using System.Net;
+﻿using Cinema.Backend.Service.Models;
 using Envista.Core.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 using Template.Service.Configuration;
 using Template.Service.DAL;
-using Template.Service.Models.Person;
 
-namespace Template.Service.Controllers
+namespace Cinema.Backend.Service.Controllers
 {
-    /// <summary>
-    /// Represents the endpoint for managing persons.
-    /// </summary>
-    [Route("api/v1/template/[controller]")]
-    [ApiController]
-    public class PersonsController : ControllerBase
+    [Route("api/v1/cinema/[controller]")]
+    public class TicketsController : ControllerBase
     {
         private readonly ILogger _logger;
         private readonly IConfiguration _configuration;
 
-        /// <summary>
-        /// Initializes a new instance of the PersonsController class.
-        /// </summary>
-        /// <param name="logger">
-        /// An object that represents the application's logger.
-        /// </param>
-        /// <param name="configuration">
-        /// An object that represents the application's configuration.
-        /// </param>
-        public PersonsController(ILogger<PersonsController> logger, IConfiguration configuration)
+        public TicketsController(ILogger<TicketsController> logger, IConfiguration configuration)
         {
             _logger = logger;
             _configuration = configuration;
         }
 
         /// <summary>
-        ///  GET persons?index={index}&count={count}&order={order}&direction={direction}
+        ///  GET tickets?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet]
-        [Authorize]
-        [ProducesResponseType(typeof(IEnumerable<Person>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<Ticket>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<IEnumerable<Person>>> GetAll([FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
+        public async Task<ActionResult<IEnumerable<Ticket>>> GetAll([FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
         {
-            List<Person> list = new List<Person>();
+            var list = new List<Ticket>();
 
             try
             {
@@ -55,18 +41,18 @@ namespace Template.Service.Controllers
                 var databaseName = _configuration.GetMongoDatabaseName();
 
                 long totalCount = 0;
-                PersonList persons = new PersonList();
+                var tickets = new List<Ticket>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Get the total count of persons
-                    totalCount = await unitOfWork.Persons.GetCountAsync();
+                    // Get the total count of tickets
+                    totalCount = await unitOfWork.Tickets.GetCountAsync();
 
-                    // Get the persons
-                    persons = await unitOfWork.Persons.GetAsync(index, count, order, direction);
+                    // Get the tickets
+                    tickets = await unitOfWork.Tickets.GetAsync(index, count, order, direction);
                 }
 
-                list = new List<Person>(persons);
+                list = new List<Ticket>(tickets);
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
             catch (Exception exception)
@@ -79,17 +65,17 @@ namespace Template.Service.Controllers
         }
 
         /// <summary>
-        /// GET: persons/search/key/value?index={index}&count={count}&order={order}&direction={direction}
+        /// GET: tickets/search/key/value?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet("search/{key}/{value}")]
         [Authorize]
-        [ProducesResponseType(typeof(IEnumerable<Person>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<Ticket>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<IEnumerable<Person>>> Search([FromRoute] string key, [FromRoute] string value, [FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
+        public async Task<ActionResult<IEnumerable<Ticket>>> Search([FromRoute] string key, [FromRoute] string value, [FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
         {
-            List<Person> list = new List<Person>();
+            var list = new List<Ticket>();
 
             try
             {
@@ -100,18 +86,18 @@ namespace Template.Service.Controllers
                 var databaseName = _configuration.GetMongoDatabaseName();
 
                 long totalCount = 0;
-                PersonList persons = new PersonList();
+                var tickets = new List<Ticket>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Get the total count of persons that match the key and value
-                    totalCount = await unitOfWork.Persons.GetCountAsync(key, value);
+                    // Get the total count of organizations that match the key and value
+                    totalCount = await unitOfWork.Tickets.GetCountAsync(key, value);
 
-                    // Get the persons that match the key and value
-                    persons = await unitOfWork.Persons.GetAsync(key, value, index, count, order, direction);
+                    // Get the organizations that match the key and value
+                    tickets = await unitOfWork.Tickets.GetAsync(key, value, index, count, order, direction);
                 }
 
-                list = new List<Person>(persons);
+                list = new List<Ticket>(tickets);
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
             catch (Exception exception)
@@ -124,35 +110,34 @@ namespace Template.Service.Controllers
         }
 
         /// <summary>
-        /// GET: persons/{id}
+        /// GET: tickets/{id}
         /// </summary>
         [HttpGet("{id}")]
         [Authorize]
-        [ProducesResponseType(typeof(Person), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Ticket), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<Person>> Get([FromRoute] Guid id)
+        public async Task<ActionResult<Ticket>> Get([FromRoute] Guid id)
         {
-            Person? person = null;
+            Ticket? ticket = null;
 
             try
             {
                 _logger.LogDebug($"{nameof(Get)} invoked.");
 
                 // Get the connection string
-                // Get the connection string
                 var connectionString = _configuration.GetMongoConnectionString();
                 var databaseName = _configuration.GetMongoDatabaseName();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Get the person
-                    person = await unitOfWork.Persons.GetAsync(id);
-                    if (person == null)
+                    // Get the organization
+                    ticket = await unitOfWork.Tickets.GetAsync(id);
+                    if (ticket == null)
                     {
-                        throw new ObjectNotFoundException($"A person with the specified ID could not be found (ID: {id}).");
+                        throw new ObjectNotFoundException($"A ticket with the specified ID could not be found (ID: {id.ToString("N")}).");
                     }
                 }
             }
@@ -162,11 +147,11 @@ namespace Template.Service.Controllers
                 throw;
             }
 
-            return person;
+            return ticket;
         }
 
         /// <summary>
-        /// POST: persons
+        /// POST: tickets
         /// </summary>
         [HttpPost]
         [Authorize]
@@ -174,8 +159,8 @@ namespace Template.Service.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesErrorResponseType(typeof(Person))]
-        public async Task<ActionResult> Create([FromBody] Person person)
+        [ProducesErrorResponseType(typeof(Ticket))]
+        public async Task<ActionResult> Create([FromBody] Ticket ticket)
         {
             ActionResult result = StatusCode((int)HttpStatusCode.InternalServerError, "The content could not be displayed because an internal server error has occured.");
 
@@ -187,31 +172,27 @@ namespace Template.Service.Controllers
                 var connectionString = _configuration.GetMongoConnectionString();
                 var databaseName = _configuration.GetMongoDatabaseName();
 
-                Person? newPerson = null;
+                Ticket? newTicket = null;
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
+                    // Add the specified ticket
+                    await unitOfWork.Tickets.AddAsync(ticket);
 
-                    // Check if user with this ID exists
-                    var existingUser = await unitOfWork.Persons.GetAsync(person.Id);
-
-                    if (existingUser != null)
-                    {
-                        throw new ObjectAlreadyExistsException($"A person with the specified ID already exists in the database (ID: {person.Id}).");
-                    }
-
-                    // Add the specified person
-                    await unitOfWork.Persons.AddAsync(person);
+                    // decrease available seats
+                    var movieProjection = await unitOfWork.MovieProjections.GetAsync(ticket.MovieProjectionId);
+                    movieProjection.AvailableSeats--;
+                    await unitOfWork.MovieProjections.UpdateAsync(movieProjection);
 
                     // Commit the unit of work
                     await unitOfWork.CommitAsync();
 
-                    // Get the newly created person
-                    newPerson = await unitOfWork.Persons.GetAsync(person.Id);
+                    // Get the newly created ticket
+                    newTicket = await unitOfWork.Tickets.GetAsync(ticket.Id);
                 }
 
                 // Set a successful HTTP status code (201)
-                result = StatusCode((int)HttpStatusCode.Created, newPerson);
+                result = StatusCode((int)HttpStatusCode.Created, newTicket);
             }
             catch (Exception exception)
             {
@@ -223,7 +204,7 @@ namespace Template.Service.Controllers
         }
 
         /// <summary>
-        /// PUT: persons
+        /// PUT: tickets
         /// </summary>
         [HttpPut("{id}")]
         [Authorize]
@@ -231,8 +212,8 @@ namespace Template.Service.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesErrorResponseType(typeof(Person))]
-        public async Task<ActionResult> Update([FromRoute] Guid id, [FromBody] Person person)
+        [ProducesErrorResponseType(typeof(Ticket))]
+        public async Task<ActionResult> Update([FromRoute] Guid id, [FromBody] Ticket ticket)
         {
             ActionResult result = StatusCode((int)HttpStatusCode.InternalServerError, "The content could not be displayed because an internal server error has occured.");
 
@@ -244,29 +225,29 @@ namespace Template.Service.Controllers
                 var connectionString = _configuration.GetMongoConnectionString();
                 var databaseName = _configuration.GetMongoDatabaseName();
 
-                Person? updatedPerson = null;
+                Ticket? updatedTicket = null;
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Check that person exists
-                    var match = await unitOfWork.Persons.GetAsync(id);
-                    if ((match == null) || (match.Id != person.Id))
+                    // Check that ticekt exists
+                    var match = await unitOfWork.Tickets.GetAsync(id);
+                    if ((match == null) || (match.Id != ticket.Id))
                     {
-                        throw new ObjectNotFoundException($"The person with the specified ID could not be found (ID: {id}).");
+                        throw new ObjectNotFoundException($"The ticket with the specified ID could not be found (ID: {id:N}).");
                     }
 
-                    // Update the specified person
-                    await unitOfWork.Persons.UpdateAsync(person);
+                    // Update the specified ticket
+                    await unitOfWork.Tickets.UpdateAsync(ticket);
 
                     // Commit the unit of work
                     await unitOfWork.CommitAsync();
 
-                    // Get the newly updated person
-                    updatedPerson = await unitOfWork.Persons.GetAsync(id);
+                    // Get the newly updated organization
+                    updatedTicket = await unitOfWork.Tickets.GetAsync(ticket.Id);
                 }
 
                 // Set a successful HTTP status code (200)
-                result = StatusCode((int)HttpStatusCode.OK, updatedPerson);
+                result = StatusCode((int)HttpStatusCode.OK, updatedTicket);
             }
             catch (Exception exception)
             {
@@ -278,7 +259,7 @@ namespace Template.Service.Controllers
         }
 
         /// <summary>
-        /// Delete: persons/{id}
+        /// Delete: tickets/{id}
         /// </summary>
         [HttpDelete("{id}")]
         [Authorize]
@@ -301,15 +282,15 @@ namespace Template.Service.Controllers
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Get the person
-                    Person person = await unitOfWork.Persons.GetAsync(id);
-                    if (person == null)
+                    // Get the ticket
+                    Ticket ticket = await unitOfWork.Tickets.GetAsync(id);
+                    if (ticket == null)
                     {
-                        throw new ObjectNotFoundException($"A person with the specified ID could not be found (ID: {id}).");
+                        throw new ObjectNotFoundException($"Ticket with the specified ID could not be found (ID: {id.ToString("N")}).");
                     }
 
-                    // Delete the specified persons
-                    await unitOfWork.Persons.RemoveAsync(id);
+                    // Delete the specified ticket
+                    await unitOfWork.Tickets.RemoveAsync(id);
 
                     // Commit the unit of work
                     await unitOfWork.CommitAsync();

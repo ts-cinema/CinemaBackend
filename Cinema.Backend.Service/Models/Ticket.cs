@@ -10,6 +10,6 @@
 
         public Guid MovieProjectionId { get; set; }
 
-        //dodati UserId
+        public Guid UserId { get; set; }
     }
 }

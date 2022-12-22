@@ -8,8 +8,6 @@ namespace Template.Service.DAL
     public class UnitOfWork : IUnitOfWork
     {
         readonly MongoContext _context;
-        private readonly OrganizationRepository _organizations;
-        private readonly PersonRepository _persons;
         private readonly MovieRepository _movies;
         private readonly MovieProjectionRepository _movieProjections;
         private readonly TicketRepository _tickets;
@@ -22,8 +20,6 @@ namespace Template.Service.DAL
         public UnitOfWork(string connectionString, string databaseName)
         {
             _context = new MongoContext(connectionString, databaseName);
-            _organizations = new OrganizationRepository(_context);
-            _persons = new PersonRepository(_context);
             _movies = new MovieRepository(_context);
             _movieProjections = new MovieProjectionRepository(_context);
             _tickets = new TicketRepository(_context);
@@ -59,28 +55,6 @@ namespace Template.Service.DAL
                 }
 
                 this._disposed = true;
-            }
-        }
-
-        /// <summary>
-        /// Get's access to the organizations repository.
-        /// </summary>
-        public IOrganizationRepository Organizations
-        {
-            get
-            {
-                return _organizations as IOrganizationRepository;
-            }
-        }
-
-        /// <summary>
-        /// Get's access to the persons repository.
-        /// </summary>
-        public IPersonRepository Persons
-        {
-            get
-            {
-                return _persons as IPersonRepository;
             }
         }
 
@@ -126,8 +100,6 @@ namespace Template.Service.DAL
         {
             int count = 0;
 
-            count += await _organizations.CommitAsync();
-            count += await _persons.CommitAsync();
             count += await _movieProjections.CommitAsync();
             count += await _movies.CommitAsync();
             count += await _ratings.CommitAsync();

@@ -2,6 +2,7 @@
 using Cinema.Backend.Service.Services;
 using Cinema.Backend.Service.Setup;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -50,6 +51,7 @@ namespace Template.Service
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddScoped<IUserService, UserService>();
+            services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
             services.AddIdentity<User, Role>(options =>
             {
@@ -93,7 +95,7 @@ namespace Template.Service
             {
                 options.AddPolicy("Cinema", builder =>
                 {
-                    builder.WithOrigins("http://*.com", "http://localhost", "https://localhost")
+                    builder.WithOrigins("http://*.com", "http://localhost:3000", "https://localhost")
                     .SetIsOriginAllowedToAllowWildcardSubdomains()
                     .AllowAnyMethod()
                     .AllowAnyHeader()

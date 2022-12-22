@@ -7,10 +7,6 @@ namespace Template.Service.DAL
     /// </summary>
     public interface IUnitOfWork : IDisposable
     {
-        IOrganizationRepository Organizations { get; }
-
-        IPersonRepository Persons { get; }
-
         IMovieRepository Movies { get; }
 
         IMovieProjectionRepository MovieProjections { get; }

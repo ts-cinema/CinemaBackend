@@ -1,49 +1,36 @@
-﻿using System.Net;
+﻿using Cinema.Backend.Service.Models;
 using Envista.Core.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 using Template.Service.Configuration;
 using Template.Service.DAL;
-using Template.Service.Models.Organization;
 
-namespace Template.Service.Controllers
+namespace Cinema.Backend.Service.Controllers
 {
-    /// <summary>
-    /// Represents the endpoint for managing organizations.
-    /// </summary>
-    [Route("api/v1/template/[controller]")]
-    [ApiController]
-    public class OrganizationsController : ControllerBase
+    [Route("api/v1/cinema/[controller]")]
+    public class RatingsController : ControllerBase
     {
         private readonly ILogger _logger;
         private readonly IConfiguration _configuration;
 
-        /// <summary>
-        /// Initializes a new instance of the OrganizationsController class.
-        /// </summary>
-        /// <param name="logger">
-        /// An object that represents the application's logger.
-        /// </param>
-        /// <param name="configuration">
-        /// An object that represents the application's configuration.
-        /// </param>
-        public OrganizationsController(ILogger<OrganizationsController> logger, IConfiguration configuration)
+        public RatingsController(ILogger<RatingsController> logger, IConfiguration configuration)
         {
             _logger = logger;
             _configuration = configuration;
         }
 
         /// <summary>
-        ///  GET organizations?index={index}&count={count}&order={order}&direction={direction}
+        ///  GET ratings?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<Organization>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<Rating>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<IEnumerable<Organization>>> GetAll([FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
+        public async Task<ActionResult<IEnumerable<Rating>>> GetAll([FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
         {
-            List<Organization> list = new List<Organization>();
+            var list = new List<Rating>();
 
             try
             {
@@ -54,18 +41,18 @@ namespace Template.Service.Controllers
                 var databaseName = _configuration.GetMongoDatabaseName();
 
                 long totalCount = 0;
-                OrganizationList organizations = new OrganizationList();
+                var ratings = new List<Rating>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Get the total count of organizations
-                    totalCount = await unitOfWork.Organizations.GetCountAsync();
+                    // Get the total count of ratings
+                    totalCount = await unitOfWork.Ratings.GetCountAsync();
 
-                    // Get the organizations
-                    organizations = await unitOfWork.Organizations.GetAsync(index, count, order, direction);
+                    // Get the ratings
+                    ratings = await unitOfWork.Ratings.GetAsync(index, count, order, direction);
                 }
 
-                list = new List<Organization>(organizations);
+                list = new List<Rating>(ratings);
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
             catch (Exception exception)
@@ -78,17 +65,17 @@ namespace Template.Service.Controllers
         }
 
         /// <summary>
-        /// GET: organizations/search/key/value?index={index}&count={count}&order={order}&direction={direction}
+        /// GET: ratings/search/key/value?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet("search/{key}/{value}")]
         [Authorize]
-        [ProducesResponseType(typeof(IEnumerable<Organization>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<Rating>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<IEnumerable<Organization>>> Search([FromRoute] string key, [FromRoute] string value, [FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
+        public async Task<ActionResult<IEnumerable<Rating>>> Search([FromRoute] string key, [FromRoute] string value, [FromQuery] int index = 0, [FromQuery] int count = 100, [FromQuery] string order = "", [FromQuery] int direction = 0)
         {
-            List<Organization> list = new List<Organization>();
+            var list = new List<Rating>();
 
             try
             {
@@ -99,18 +86,18 @@ namespace Template.Service.Controllers
                 var databaseName = _configuration.GetMongoDatabaseName();
 
                 long totalCount = 0;
-                OrganizationList organizations = new OrganizationList();
+                var ratings = new List<Rating>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Get the total count of organizations that match the key and value
-                    totalCount = await unitOfWork.Organizations.GetCountAsync(key, value);
+                    // Get the total count of ratings that match the key and value
+                    totalCount = await unitOfWork.Ratings.GetCountAsync(key, value);
 
                     // Get the organizations that match the key and value
-                    organizations = await unitOfWork.Organizations.GetAsync(key, value, index, count, order, direction);
+                    ratings = await unitOfWork.Ratings.GetAsync(key, value, index, count, order, direction);
                 }
 
-                list = new List<Organization>(organizations);
+                list = new List<Rating>(ratings);
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
             catch (Exception exception)
@@ -123,18 +110,18 @@ namespace Template.Service.Controllers
         }
 
         /// <summary>
-        /// GET: organizations/{id}
+        /// GET: ratings/{id}
         /// </summary>
         [HttpGet("{id}")]
         [Authorize]
-        [ProducesResponseType(typeof(Organization), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Rating), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesErrorResponseType(typeof(void))]
-        public async Task<ActionResult<Organization>> Get([FromRoute] Guid id)
+        public async Task<ActionResult<Rating>> Get([FromRoute] Guid id)
         {
-            Organization? organization = null;
+            Rating? rating = null;
 
             try
             {
@@ -146,11 +133,11 @@ namespace Template.Service.Controllers
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Get the organization
-                    organization = await unitOfWork.Organizations.GetAsync(id);
-                    if (organization == null)
+                    // Get the rating
+                    rating = await unitOfWork.Ratings.GetAsync(id);
+                    if (rating == null)
                     {
-                        throw new ObjectNotFoundException($"A organization with the specified ID could not be found (ID: {id.ToString("N")}).");
+                        throw new ObjectNotFoundException($"A rating with the specified ID could not be found (ID: {id.ToString("N")}).");
                     }
                 }
             }
@@ -160,11 +147,11 @@ namespace Template.Service.Controllers
                 throw;
             }
 
-            return organization;
+            return rating;
         }
 
         /// <summary>
-        /// POST: organizations
+        /// POST: ratings
         /// </summary>
         [HttpPost]
         [Authorize]
@@ -172,8 +159,8 @@ namespace Template.Service.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesErrorResponseType(typeof(Organization))]
-        public async Task<ActionResult> Create([FromBody] Organization organization)
+        [ProducesErrorResponseType(typeof(Rating))]
+        public async Task<ActionResult> Create([FromBody] Rating rating)
         {
             ActionResult result = StatusCode((int)HttpStatusCode.InternalServerError, "The content could not be displayed because an internal server error has occured.");
 
@@ -185,22 +172,22 @@ namespace Template.Service.Controllers
                 var connectionString = _configuration.GetMongoConnectionString();
                 var databaseName = _configuration.GetMongoDatabaseName();
 
-                Organization? newOrganization = null;
+                Rating? newRating = null;
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Add the specified organization
-                    await unitOfWork.Organizations.AddAsync(organization);
+                    // Add the specified ticket
+                    await unitOfWork.Ratings.AddAsync(rating);
 
                     // Commit the unit of work
                     await unitOfWork.CommitAsync();
 
-                    // Get the newly created organization
-                    newOrganization = await unitOfWork.Organizations.GetAsync(organization.Id);
+                    // Get the newly created ticket
+                    newRating = await unitOfWork.Ratings.GetAsync(rating.Id);
                 }
 
                 // Set a successful HTTP status code (201)
-                result = StatusCode((int)HttpStatusCode.Created, newOrganization);
+                result = StatusCode((int)HttpStatusCode.Created, newRating);
             }
             catch (Exception exception)
             {
@@ -212,7 +199,7 @@ namespace Template.Service.Controllers
         }
 
         /// <summary>
-        /// PUT: organizations
+        /// PUT: ratings
         /// </summary>
         [HttpPut("{id}")]
         [Authorize]
@@ -220,8 +207,8 @@ namespace Template.Service.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesErrorResponseType(typeof(Organization))]
-        public async Task<ActionResult> Update([FromRoute] Guid id, [FromBody] Organization organization)
+        [ProducesErrorResponseType(typeof(Rating))]
+        public async Task<ActionResult> Update([FromRoute] Guid id, [FromBody] Rating rating)
         {
             ActionResult result = StatusCode((int)HttpStatusCode.InternalServerError, "The content could not be displayed because an internal server error has occured.");
 
@@ -233,29 +220,29 @@ namespace Template.Service.Controllers
                 var connectionString = _configuration.GetMongoConnectionString();
                 var databaseName = _configuration.GetMongoDatabaseName();
 
-                Organization? updatedOrganization = null;
+                Rating? updatedRating = null;
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Check that organization exists
-                    var match = await unitOfWork.Organizations.GetAsync(id);
-                    if ((match == null) || (match.Id != organization.Id))
+                    // Check that ticekt exists
+                    var match = await unitOfWork.Ratings.GetAsync(id);
+                    if ((match == null) || (match.Id != rating.Id))
                     {
-                        throw new ObjectNotFoundException($"The organization with the specified ID could not be found (ID: {id:N}).");
+                        throw new ObjectNotFoundException($"The rating with the specified ID could not be found (ID: {id:N}).");
                     }
 
-                    // Update the specified organization
-                    await unitOfWork.Organizations.UpdateAsync(organization);
+                    // Update the specified ticket
+                    await unitOfWork.Ratings.UpdateAsync(rating);
 
                     // Commit the unit of work
                     await unitOfWork.CommitAsync();
 
                     // Get the newly updated organization
-                    updatedOrganization = await unitOfWork.Organizations.GetAsync(organization.Id);
+                    updatedRating = await unitOfWork.Ratings.GetAsync(rating.Id);
                 }
 
                 // Set a successful HTTP status code (200)
-                result = StatusCode((int)HttpStatusCode.OK, updatedOrganization);
+                result = StatusCode((int)HttpStatusCode.OK, updatedRating);
             }
             catch (Exception exception)
             {
@@ -267,7 +254,7 @@ namespace Template.Service.Controllers
         }
 
         /// <summary>
-        /// Delete: organizations/{id}
+        /// Delete: ratings/{id}
         /// </summary>
         [HttpDelete("{id}")]
         [Authorize]
@@ -290,15 +277,15 @@ namespace Template.Service.Controllers
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Get the organization
-                    Organization organization = await unitOfWork.Organizations.GetAsync(id);
-                    if (organization == null)
+                    // Get the ticket
+                    Rating rating = await unitOfWork.Ratings.GetAsync(id);
+                    if (rating == null)
                     {
-                        throw new ObjectNotFoundException($"A organization with the specified ID could not be found (ID: {id.ToString("N")}).");
+                        throw new ObjectNotFoundException($"Rating with the specified ID could not be found (ID: {id.ToString("N")}).");
                     }
 
-                    // Delete the specified organizations
-                    await unitOfWork.Organizations.RemoveAsync(id);
+                    // Delete the specified ticket
+                    await unitOfWork.Tickets.RemoveAsync(id);
 
                     // Commit the unit of work
                     await unitOfWork.CommitAsync();

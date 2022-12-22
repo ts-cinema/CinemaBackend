@@ -1,5 +1,8 @@
 ﻿using Cinema.Backend.Service.Models;
+using Envista.Core.Common.System;
+using MongoDB.Bson;
 using MongoDB.Driver;
+using System;
 using Template.Service.DAL;
 
 namespace Cinema.Backend.Service.DAL
@@ -34,57 +37,163 @@ namespace Cinema.Backend.Service.DAL
 
         public Task AddAsync(Rating rating)
         {
-            throw new NotImplementedException();
+            if (rating == null)
+            {
+                throw new ArgumentNullException(nameof(rating));
+            }
+
+            _addList.Add(rating);
+
+            return Task.CompletedTask;
         }
 
         public Task AddAsync(List<Rating> ratings)
         {
-            throw new NotImplementedException();
+            if (ratings == null)
+            {
+                throw new ArgumentNullException(nameof(ratings));
+            }
+
+            _addList.AddRange(ratings);
+
+            return Task.CompletedTask;
         }
 
-        public Task<List<Rating>> GetAsync(int index = 0, int count = 100, string order = "", int direction = 0)
+        public async Task<List<Rating>> GetAsync(int index = 0, int count = 100, string order = "", int direction = 0)
         {
-            throw new NotImplementedException();
+            List<Rating> ratings = new List<Rating>();
+
+            if (!string.IsNullOrEmpty(order))
+            {
+                direction = (direction >= 0) ? 1 : -1;
+
+                // Gets all persons
+                var list = await Ratings.Find(FilterDefinition<Rating>.Empty).Sort(new BsonDocument(order, direction)).Skip(index).Limit(count).ToListAsync();
+                ratings = new List<Rating>(list);
+            }
+            else
+            {
+                // Gets all persons
+                var list = await Ratings.Find(FilterDefinition<Rating>.Empty).Skip(index).Limit(count).ToListAsync();
+                ratings = new List<Rating>(list);
+            }
+
+            return ratings;
         }
 
-        public Task<List<Rating>> GetAsync(string key, string value, int index = 0, int count = 100, string order = "", int direction = 0)
+        public async Task<List<Rating>> GetAsync(string key, string value, int index = 0, int count = 100, string order = "", int direction = 0)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentException($"The specified {nameof(key)} parameter is invalid.");
+            }
+
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException($"The specified {nameof(value)} parameter is invalid.");
+            }
+
+            List<Rating> ratings = new List<Rating>();
+
+            // Parse the value
+            DataParser parser = new DataParser();
+            var result = parser.Parse(value);
+
+            // Create the filter
+            key = ((key == "id") || (key == "metadata.id")) ? "_id" : key;
+            var filter = Builders<Rating>.Filter.Eq(key, result.Item2);
+
+            if (!string.IsNullOrEmpty(order))
+            {
+                direction = (direction >= 0) ? 1 : -1;
+
+                var list = await this.Ratings.Find(filter).Sort(new BsonDocument(order, direction)).Skip(index).Limit(count).ToListAsync();
+                ratings = new List<Rating>(list);
+            }
+            else
+            {
+                var list = await this.Ratings.Find(filter).Skip(index).Limit(count).ToListAsync();
+                ratings = new List<Rating>(list);
+            }
+
+            return ratings;
         }
 
-        public Task<Rating> GetAsync(Guid id)
+        public async Task<Rating> GetAsync(Guid id)
         {
-            throw new NotImplementedException();
+            var filter = Builders<Rating>.Filter.Eq("_id", id);
+            var ratings = await Ratings.FindAsync(filter);
+            Rating rating = ratings.FirstOrDefault<Rating>();
+
+            return rating;
         }
 
-        public Task<long> GetCountAsync()
+        public async Task<long> GetCountAsync()
         {
-            throw new NotImplementedException();
+            return await Ratings.CountDocumentsAsync(FilterDefinition<Rating>.Empty);
         }
 
-        public Task<long> GetCountAsync(string key, string value)
+        public async Task<long> GetCountAsync(string key, string value)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentException($"The specified {nameof(key)} parameter is invalid.");
+            }
+
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException($"The specified {nameof(value)} parameter is invalid.");
+            }
+
+            // Parse the value
+            DataParser parser = new DataParser();
+            var result = parser.Parse(value);
+
+            // Build the filter
+            var filter = Builders<Rating>.Filter.Eq(key, result.Item2);
+
+            // Get the person count
+            long count = await this.Ratings.CountDocumentsAsync(filter);
+
+            return count;
         }
 
         public Task RemoveAsync(Guid id)
         {
-            throw new NotImplementedException();
+            _removeList.Add(id);
+
+            return Task.CompletedTask;
         }
 
         public Task RemoveAsync(List<Guid> ids)
         {
-            throw new NotImplementedException();
+            _removeList.AddRange(ids);
+
+            return Task.CompletedTask;
         }
 
         public Task UpdateAsync(Rating rating)
         {
-            throw new NotImplementedException();
+            if (rating == null)
+            {
+                throw new ArgumentNullException(nameof(rating));
+            }
+
+            _updateList.Add(rating);
+
+            return Task.CompletedTask;
         }
 
         public Task UpdateAsync(List<Rating> ratings)
         {
-            throw new NotImplementedException();
+            if (ratings == null)
+            {
+                throw new ArgumentNullException(nameof(ratings));
+            }
+
+            _updateList.AddRange(ratings);
+
+            return Task.CompletedTask;
         }
 
         internal async Task<int> CommitAsync()

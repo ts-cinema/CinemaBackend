@@ -1,5 +1,6 @@
 ﻿using Cinema.Backend.Service.Models.DTOs;
 using Cinema.Backend.Service.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cinema.Backend.Service.Controllers
@@ -15,6 +16,7 @@ namespace Cinema.Backend.Service.Controllers
             _userService = userService;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> RegisterAsync([FromBody] UserRegistrationRequest request)
         {
@@ -28,6 +30,7 @@ namespace Cinema.Backend.Service.Controllers
             return Ok(response);
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> LoginAsync([FromBody] UserLoginRequest request)
         {

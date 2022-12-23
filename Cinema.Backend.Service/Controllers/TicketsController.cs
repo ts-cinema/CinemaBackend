@@ -1,4 +1,5 @@
 ﻿using Cinema.Backend.Service.Models;
+using Cinema.Backend.Service.Models.Core;
 using Cinema.Backend.Service.Models.DTOs;
 using Envista.Core.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
@@ -25,6 +26,7 @@ namespace Cinema.Backend.Service.Controllers
         ///  GET tickets?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(typeof(IEnumerable<Ticket>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -69,7 +71,7 @@ namespace Cinema.Backend.Service.Controllers
         /// GET: tickets/search/key/value?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet("search/{key}/{value}")]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(typeof(IEnumerable<Ticket>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -114,7 +116,7 @@ namespace Cinema.Backend.Service.Controllers
         /// GET: tickets/{id}
         /// </summary>
         [HttpGet("{id}")]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(typeof(Ticket), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -155,12 +157,12 @@ namespace Cinema.Backend.Service.Controllers
         /// POST: tickets
         /// </summary>
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesErrorResponseType(typeof(TicketReservation))]
+        [ProducesErrorResponseType(typeof(IEnumerable<TicketReservation>))]
         public async Task<ActionResult> Create([FromBody] TicketReservation ticketReservation)
         {
             ActionResult result = StatusCode((int)HttpStatusCode.InternalServerError, "The content could not be displayed because an internal server error has occured.");
@@ -174,6 +176,7 @@ namespace Cinema.Backend.Service.Controllers
                 var databaseName = _configuration.GetMongoDatabaseName();
 
                 Ticket? newTicket = null;
+                var createdTickets = new List<Ticket>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
@@ -188,27 +191,38 @@ namespace Cinema.Backend.Service.Controllers
                     movieProjection.AvailableSeats -= ticketReservation.Quantity;
                     await unitOfWork.MovieProjections.UpdateAsync(movieProjection);
 
-                    // initialize ticket object
-                    newTicket = new Ticket
+                    var createdIds = new List<Guid>();
+
+                    for (int i = 0; i < ticketReservation.Quantity; i++)
                     {
-                        Name = ticketReservation.Name,
-                        Price = ticketReservation.Price,
-                        MovieProjectionId = ticketReservation.MovieProjectionId,
-                        UserId = ticketReservation.UserId
-                    };
+                        // initialize ticket object
+                        newTicket = new Ticket
+                        {
+                            Name = ticketReservation.Name,
+                            Price = ticketReservation.Price,
+                            MovieProjectionId = ticketReservation.MovieProjectionId,
+                            UserId = ticketReservation.UserId
+                        };
 
-                    // Add the specified ticket
-                    await unitOfWork.Tickets.AddAsync(newTicket);
+                        // Add the specified ticket
+                        await unitOfWork.Tickets.AddAsync(newTicket);
 
-                    // Commit the unit of work
-                    await unitOfWork.CommitAsync();
+                        // Commit the unit of work
+                        await unitOfWork.CommitAsync();
 
-                    // Get the newly created ticket
-                    newTicket = await unitOfWork.Tickets.GetAsync(newTicket.Id);
+                        createdIds.Add(newTicket.Id);
+                    }
+
+                    foreach (var id in createdIds)
+                    {
+                        createdTickets.Add(
+                            await unitOfWork.Tickets.GetAsync(id)
+                        );
+                    }
                 }
 
                 // Set a successful HTTP status code (201)
-                result = StatusCode((int)HttpStatusCode.Created, newTicket);
+                result = StatusCode((int)HttpStatusCode.Created, createdTickets);
             }
             catch (Exception exception)
             {
@@ -223,7 +237,7 @@ namespace Cinema.Backend.Service.Controllers
         /// PUT: tickets
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -278,7 +292,7 @@ namespace Cinema.Backend.Service.Controllers
         /// Delete: tickets/{id}
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

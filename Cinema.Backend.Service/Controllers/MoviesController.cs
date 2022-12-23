@@ -1,4 +1,5 @@
 ﻿using Cinema.Backend.Service.Models;
+using Cinema.Backend.Service.Models.Core;
 using Cinema.Backend.Service.Models.DTOs;
 using Envista.Core.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
@@ -25,6 +26,7 @@ namespace Cinema.Backend.Service.Controllers
         ///  GET movies?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(IEnumerable<MovieWithRating>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -77,7 +79,7 @@ namespace Cinema.Backend.Service.Controllers
         /// GET: movies/search/key/value?index={index}&count={count}&order={order}&direction={direction}
         /// </summary>
         [HttpGet("search/{key}/{value}")]
-        [Authorize]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(IEnumerable<MovieWithRating>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -129,7 +131,7 @@ namespace Cinema.Backend.Service.Controllers
         /// GET: movies/{id}
         /// </summary>
         [HttpGet("{id}")]
-        [Authorize]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(MovieWithRating), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -190,7 +192,7 @@ namespace Cinema.Backend.Service.Controllers
         /// POST: movies
         /// </summary>
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -238,7 +240,7 @@ namespace Cinema.Backend.Service.Controllers
         /// PUT: movies
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -293,7 +295,7 @@ namespace Cinema.Backend.Service.Controllers
         /// Delete: movies/{id}
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

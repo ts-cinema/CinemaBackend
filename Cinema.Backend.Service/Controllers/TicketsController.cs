@@ -1,4 +1,5 @@
 ﻿using Cinema.Backend.Service.Models;
+using Cinema.Backend.Service.Models.DTOs;
 using Envista.Core.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -159,8 +160,8 @@ namespace Cinema.Backend.Service.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesErrorResponseType(typeof(Ticket))]
-        public async Task<ActionResult> Create([FromBody] Ticket ticket)
+        [ProducesErrorResponseType(typeof(TicketReservation))]
+        public async Task<ActionResult> Create([FromBody] TicketReservation ticketReservation)
         {
             ActionResult result = StatusCode((int)HttpStatusCode.InternalServerError, "The content could not be displayed because an internal server error has occured.");
 
@@ -176,19 +177,34 @@ namespace Cinema.Backend.Service.Controllers
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
-                    // Add the specified ticket
-                    await unitOfWork.Tickets.AddAsync(ticket);
+                    // check for seats availability
+                    var movieProjection = await unitOfWork.MovieProjections.GetAsync(ticketReservation.MovieProjectionId);
 
-                    // decrease available seats
-                    var movieProjection = await unitOfWork.MovieProjections.GetAsync(ticket.MovieProjectionId);
-                    movieProjection.AvailableSeats--;
+                    if (movieProjection.AvailableSeats - ticketReservation.Quantity < 0)
+                    {
+                        throw new ArgumentOutOfRangeException("Amount of requested tickets is not available");
+                    }
+
+                    movieProjection.AvailableSeats -= ticketReservation.Quantity;
                     await unitOfWork.MovieProjections.UpdateAsync(movieProjection);
+
+                    // initialize ticket object
+                    newTicket = new Ticket
+                    {
+                        Name = ticketReservation.Name,
+                        Price = ticketReservation.Price,
+                        MovieProjectionId = ticketReservation.MovieProjectionId,
+                        UserId = ticketReservation.UserId
+                    };
+
+                    // Add the specified ticket
+                    await unitOfWork.Tickets.AddAsync(newTicket);
 
                     // Commit the unit of work
                     await unitOfWork.CommitAsync();
 
                     // Get the newly created ticket
-                    newTicket = await unitOfWork.Tickets.GetAsync(ticket.Id);
+                    newTicket = await unitOfWork.Tickets.GetAsync(newTicket.Id);
                 }
 
                 // Set a successful HTTP status code (201)

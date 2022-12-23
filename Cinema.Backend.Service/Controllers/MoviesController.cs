@@ -343,7 +343,8 @@ namespace Cinema.Backend.Service.Controllers
                     Description = movie.Description,
                     Genre = movie.Genre,
                     ReleaseDate = movie.ReleaseDate,
-                });
+                    CoverUrl = movie.CoverUrl
+            });
             }
             return moviesWithRating;
         }

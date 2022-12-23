@@ -32,5 +32,9 @@ namespace Cinema.Backend.Service.Models.DTOs
         [BsonElement("rating")]
         [JsonProperty("rating")]
         public double Rating { get; set; }
+
+        [BsonElement("projections")]
+        [JsonProperty("projections")]
+        public List<MovieProjection> Projections { get; set; } = new List<MovieProjection>();
     }
 }

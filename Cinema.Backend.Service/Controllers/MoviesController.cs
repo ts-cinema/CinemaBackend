@@ -44,6 +44,7 @@ namespace Cinema.Backend.Service.Controllers
                 long totalCount = 0;
                 var movies = new List<Movie>();
                 var ratings = new List<Rating>();
+                var projections = new List<MovieProjection>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
@@ -54,9 +55,13 @@ namespace Cinema.Backend.Service.Controllers
                     movies = await unitOfWork.Movies.GetAsync(index, count, order, direction);
 
                     ratings = await unitOfWork.Ratings.GetAsync(index, count, order, direction);
+
+                    projections = await unitOfWork.MovieProjections.GetAsync(index, count, order, direction);
                 }
 
                 list = CalculateRatingForMovies(movies, ratings);
+                AddMovieProjections(list, projections);
+                
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
             catch (Exception exception)
@@ -92,6 +97,7 @@ namespace Cinema.Backend.Service.Controllers
                 long totalCount = 0;
                 var movies = new List<Movie>();
                 var ratings = new List<Rating>();
+                var projections = new List<MovieProjection>();
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
@@ -102,9 +108,12 @@ namespace Cinema.Backend.Service.Controllers
                     movies = await unitOfWork.Movies.GetAsync(key, value, index, count, order, direction);
 
                     ratings = await unitOfWork.Ratings.GetAsync(index, count, order, direction);
+
+                    projections = await unitOfWork.MovieProjections.GetAsync(index, count, order, direction);
                 }
 
                 list = CalculateRatingForMovies(movies, ratings);
+                AddMovieProjections(list, projections);
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
             catch (Exception exception)
@@ -131,6 +140,7 @@ namespace Cinema.Backend.Service.Controllers
             Movie? movie = null;
             var movieWithRating = new MovieWithRating();
             var ratings = new List<Rating>();
+            var projections = new List<MovieProjection>();
 
             try
             {
@@ -161,6 +171,10 @@ namespace Cinema.Backend.Service.Controllers
                     movieWithRating.ReleaseDate = movie.ReleaseDate;
                     movieWithRating.CoverUrl = movie.CoverUrl;
                     movieWithRating.Rating = rating;
+
+                    // add movie projections
+                    projections = await unitOfWork.MovieProjections.GetAsync();
+                    movieWithRating.Projections = projections.Where(x => x.MovieId == movieWithRating.Id).ToList();
                 }
             }
             catch (Exception exception)
@@ -325,6 +339,14 @@ namespace Cinema.Backend.Service.Controllers
             return result;
         }
 
+        private void AddMovieProjections(List<MovieWithRating> movies, List<MovieProjection> projections)
+        {
+            foreach (var movie in movies)
+            {
+                var projectionsForMovie = projections.Where(x => x.MovieId == movie.Id).ToList();
+                movie.Projections = projectionsForMovie;
+            }
+        }
 
         private List<MovieWithRating> CalculateRatingForMovies(List<Movie> movies, List<Rating> ratings)
         {

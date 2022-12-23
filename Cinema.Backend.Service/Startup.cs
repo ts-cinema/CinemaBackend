@@ -162,6 +162,8 @@ namespace Template.Service
                     options.RoutePrefix = $"{prefix}";
                 });
             }
+            // Enable HTTPS redirection
+            app.UseHttpsRedirection();
 
             // Enable endpoint routing
             app.UseRouting();

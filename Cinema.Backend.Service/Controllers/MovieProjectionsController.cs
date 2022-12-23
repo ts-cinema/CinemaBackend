@@ -161,7 +161,7 @@ namespace Cinema.Backend.Service.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesErrorResponseType(typeof(MovieProjection))]
-        public async Task<ActionResult> Create([FromBody] Ticket movieProjection)
+        public async Task<ActionResult> Create([FromBody] MovieProjection movieProjection)
         {
             ActionResult result = StatusCode((int)HttpStatusCode.InternalServerError, "The content could not be displayed because an internal server error has occured.");
 
@@ -178,7 +178,7 @@ namespace Cinema.Backend.Service.Controllers
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
                     // Add the specified movie projection
-                    await unitOfWork.Tickets.AddAsync(movieProjection);
+                    await unitOfWork.MovieProjections.AddAsync(movieProjection);
 
                     // Commit the unit of work
                     await unitOfWork.CommitAsync();

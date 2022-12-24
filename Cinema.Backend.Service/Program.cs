@@ -87,7 +87,8 @@ namespace Template.Service
                     logging.ClearProviders();
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
                 })
-                .UseStartup<Startup>();
+                .UseStartup<Startup>()
+                .UseUrls("https://localhost:16001");
 
         /// <summary>
         /// Gets or sets the service's configuration properties.

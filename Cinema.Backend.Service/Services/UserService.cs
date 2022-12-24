@@ -16,11 +16,13 @@ namespace Cinema.Backend.Service.Services
     public class UserService : IUserService
     {
         private readonly UserManager<User> _userManager;
+        private readonly RoleManager<Role> _roleManager;
         private readonly IConfiguration _configuration;
 
-        public UserService(UserManager<User> userManager, IConfiguration configuration)
+        public UserService(UserManager<User> userManager, RoleManager<Role> roleManager, IConfiguration configuration)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _configuration = configuration;
         }
 
@@ -50,6 +52,17 @@ namespace Cinema.Backend.Service.Services
                 string errorMessage = string.Join('\n', errors);
                 throw new ArgumentException(errorMessage);
             }
+        }
+
+        public async Task<List<User>> GetAllUsers()
+        {
+            List<User> usersInRole = new List<User>();
+            foreach (var role in _roleManager.Roles)
+            {
+                usersInRole.AddRange(await _userManager.GetUsersInRoleAsync(role.Name));
+            }
+
+            return usersInRole;
         }
 
         public async Task<UserManagerResponse> LoginUserAsync(UserLoginRequest request)

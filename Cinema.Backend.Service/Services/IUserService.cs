@@ -1,4 +1,5 @@
-﻿using Cinema.Backend.Service.Models.DTOs;
+﻿using Cinema.Backend.Service.Models;
+using Cinema.Backend.Service.Models.DTOs;
 
 namespace Cinema.Backend.Service.Services
 {
@@ -11,5 +12,7 @@ namespace Cinema.Backend.Service.Services
         Task ChangePasswordAsync(UserChangePasswordRequest request, string loggedUserId);
 
         Task ChangeUserNameAsync(UserChangeUserNameRequest request, string loggedUserId);
+
+        Task<List<User>> GetAllUsers();
     }
 }

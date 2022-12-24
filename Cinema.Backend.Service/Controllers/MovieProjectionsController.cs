@@ -177,6 +177,11 @@ namespace Cinema.Backend.Service.Controllers
 
                 MovieProjection? newMovieProjection = null;
 
+                if (movieProjection.AvailableSeats > movieProjection.TotalSeats)
+                {
+                    throw new ArgumentException("There cannot be more available seats than total amount of seats");
+                }
+
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {
                     // Add the specified movie projection
@@ -224,6 +229,11 @@ namespace Cinema.Backend.Service.Controllers
                 var databaseName = _configuration.GetMongoDatabaseName();
 
                 MovieProjection? updatedMovieProjection = null;
+
+                if (movieProjection.AvailableSeats > movieProjection.TotalSeats)
+                {
+                    throw new ArgumentException("There cannot be more available seats than total amount of seats");
+                }
 
                 using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
                 {

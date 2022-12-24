@@ -40,11 +40,11 @@ namespace Cinema.Backend.Service.Services
             }
         }
 
-        public async Task ChangeUserNameAsync(UserChangeUserNameRequest request, string loggedUserId)
+        public async Task ChangeEmailAsync(UserChangeEmailRequest request, string loggedUserId)
         {
             User user = await _userManager.FindByIdAsync(loggedUserId);
 
-            IdentityResult result = await _userManager.SetUserNameAsync(user, request.UserName);
+            IdentityResult result = await _userManager.SetEmailAsync(user, request.Email);
 
             if (!result.Succeeded)
             {
@@ -131,6 +131,21 @@ namespace Cinema.Backend.Service.Services
                     Errors = result.Errors.Select(e => e.Description)
                 };
             }
+        }
+
+        public async Task<UserProfileInfo> GetUserById(Guid id)
+        {
+            var user = await _userManager.FindByIdAsync(id.ToString());
+
+            var userProfileInfo = new UserProfileInfo
+            {
+                Name = user.Name,
+                Email = user.Email,
+                Address = user.Address,
+                BirthDate = user.BirthDate
+            };
+
+            return userProfileInfo;
         }
 
         private async Task<JwtSecurityToken> GenerateTokenAsync(User user)

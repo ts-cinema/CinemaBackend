@@ -11,8 +11,10 @@ namespace Cinema.Backend.Service.Services
 
         Task ChangePasswordAsync(UserChangePasswordRequest request, string loggedUserId);
 
-        Task ChangeUserNameAsync(UserChangeUserNameRequest request, string loggedUserId);
+        Task ChangeEmailAsync(UserChangeEmailRequest request, string loggedUserId);
 
         Task<List<User>> GetAllUsers();
+
+        Task<UserProfileInfo> GetUserById(Guid id);
     }
 }

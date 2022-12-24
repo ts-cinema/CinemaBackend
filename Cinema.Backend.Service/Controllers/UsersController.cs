@@ -27,7 +27,7 @@ namespace Cinema.Backend.Service.Controllers
         }
 
         [HttpPost("change-password")]
-        [Authorize(Roles = Roles.REGISTERED_USER)]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR},{Roles.REGISTERED_USER}")]
         public async Task<IActionResult> ChangePassword([FromBody] UserChangePasswordRequest request)
         {
             await _userService.ChangePasswordAsync(request, _loggedUserId);
@@ -35,13 +35,13 @@ namespace Cinema.Backend.Service.Controllers
             return Ok("Password was successfully changed.");
         }
 
-        [HttpPost("change-username")]
-        [Authorize(Roles = Roles.REGISTERED_USER)]
-        public async Task<IActionResult> ChangeUserName([FromBody] UserChangeUserNameRequest request)
+        [HttpPost("change-email")]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR},{Roles.REGISTERED_USER}")]
+        public async Task<IActionResult> ChangeEmail([FromBody] UserChangeEmailRequest request)
         {
-            await _userService.ChangeUserNameAsync(request, _loggedUserId);
+            await _userService.ChangeEmailAsync(request, _loggedUserId);
 
-            return Ok("Username was successfully changed.");
+            return Ok("Email was successfully changed.");
         }
 
         [HttpGet]
@@ -51,6 +51,15 @@ namespace Cinema.Backend.Service.Controllers
             var users = await _userService.GetAllUsers();
 
             return Ok(users);
+        }
+
+        [HttpGet("{id}")]
+        [Authorize(Roles = $"{Roles.ADMINISTRATOR},{Roles.REGISTERED_USER}")]
+        public async Task<IActionResult> GetUserById([FromRoute] Guid id)
+        {
+            var user = await _userService.GetUserById(id);
+
+            return Ok(user);
         }
     }
 }

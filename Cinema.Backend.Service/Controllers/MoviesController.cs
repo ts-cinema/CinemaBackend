@@ -61,7 +61,8 @@ namespace Cinema.Backend.Service.Controllers
                     projections = await unitOfWork.MovieProjections.GetAsync(index, count, order, direction);
                 }
 
-                list = CalculateRatingForMovies(movies, ratings);
+                    list = CalculateRatingForMovies(movies, ratings);
+                    
                 AddMovieProjections(list, projections);
                 
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
@@ -114,7 +115,10 @@ namespace Cinema.Backend.Service.Controllers
                     projections = await unitOfWork.MovieProjections.GetAsync(index, count, order, direction);
                 }
 
-                list = CalculateRatingForMovies(movies, ratings);
+                if (ratings != null && ratings.Count > 0)
+                {
+                    list = CalculateRatingForMovies(movies, ratings);
+                } 
                 AddMovieProjections(list, projections);
                 Request.HttpContext.Response.Headers.Add("x-total-count", totalCount.ToString());
             }
@@ -163,16 +167,19 @@ namespace Cinema.Backend.Service.Controllers
 
                     // calculate rating for movie
                     ratings = await unitOfWork.Ratings.GetAsync();
-                    double rating = ratings
-                        .Where(x => x.MovieId == movie.Id)
-                        .Select(x => x.Value)
-                        .Average();
-                    movieWithRating.Id = movie.Id;
-                    movieWithRating.Title = movie.Title;
-                    movieWithRating.Description = movie.Description;
-                    movieWithRating.ReleaseDate = movie.ReleaseDate;
-                    movieWithRating.CoverUrl = movie.CoverUrl;
-                    movieWithRating.Rating = rating;
+                    if (ratings != null && ratings.Count > 0)
+                    {
+                        double rating = ratings
+                           .Where(x => x.MovieId == movie.Id)
+                           .Select(x => x.Value)
+                           .Average();
+                        movieWithRating.Id = movie.Id;
+                        movieWithRating.Title = movie.Title;
+                        movieWithRating.Description = movie.Description;
+                        movieWithRating.ReleaseDate = movie.ReleaseDate;
+                        movieWithRating.CoverUrl = movie.CoverUrl;
+                        movieWithRating.Rating = rating;
+                    }
 
                     // add movie projections
                     projections = await unitOfWork.MovieProjections.GetAsync();
@@ -355,20 +362,36 @@ namespace Cinema.Backend.Service.Controllers
             var moviesWithRating = new List<MovieWithRating>();
             foreach (var movie in movies)
             {
-                double rating = ratings
+                var ratingList = ratings
                     .Where(x => x.MovieId == movie.Id)
-                    .Select(x => x.Value)
-                    .Average();
-                moviesWithRating.Add(new MovieWithRating
+                    .Select(x => x.Value);
+                if (ratingList == null || ratingList.Count() == 0)
                 {
-                    Id = movie.Id,
-                    Rating = rating,
-                    Title = movie.Title,
-                    Description = movie.Description,
-                    Genre = movie.Genre,
-                    ReleaseDate = movie.ReleaseDate,
-                    CoverUrl = movie.CoverUrl
-            });
+                    moviesWithRating.Add(new MovieWithRating
+                    {
+                        Id = movie.Id,
+                        Rating = 0,
+                        Title = movie.Title,
+                        Description = movie.Description,
+                        Genre = movie.Genre,
+                        ReleaseDate = movie.ReleaseDate,
+                        CoverUrl = movie.CoverUrl
+                    });
+                }
+                else
+                {
+                    double rating = ratingList.Average();
+                    moviesWithRating.Add(new MovieWithRating
+                    {
+                        Id = movie.Id,
+                        Rating = rating,
+                        Title = movie.Title,
+                        Description = movie.Description,
+                        Genre = movie.Genre,
+                        ReleaseDate = movie.ReleaseDate,
+                        CoverUrl = movie.CoverUrl
+                    });
+                }
             }
             return moviesWithRating;
         }

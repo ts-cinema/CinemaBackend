@@ -198,7 +198,7 @@ namespace Cinema.Backend.Service.Controllers
         /// POST: tickets
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = $"{Roles.ADMINISTRATOR}")]
+        [Authorize(Roles = $"{Roles.REGISTERED_USER}")]
         [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

@@ -9,9 +9,7 @@ namespace Cinema.Backend.Service.Services
 
         Task<UserManagerResponse> LoginUserAsync(UserLoginRequest request);
 
-        Task ChangePasswordAsync(UserChangePasswordRequest request, string loggedUserId);
-
-        Task ChangeEmailAsync(UserChangeEmailRequest request, string loggedUserId);
+        Task ChangeUserInfoAsync(UserChangeInformationRequest request, string loggedUserId);
 
         Task<List<User>> GetAllUsers();
 

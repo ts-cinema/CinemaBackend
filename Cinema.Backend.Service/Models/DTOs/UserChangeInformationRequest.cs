@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Cinema.Backend.Service.Models.DTOs
 {
-    public class UserChangePasswordRequest
+    public class UserChangeInformationRequest
     {
         [Required]
         [JsonProperty("current_password")]
@@ -12,5 +12,9 @@ namespace Cinema.Backend.Service.Models.DTOs
         [Required]
         [JsonProperty("new_password")]
         public string NewPassword { get; set; }
+
+        [Required]
+        [JsonProperty("email")]
+        public string Email { get; set; }
     }
 }

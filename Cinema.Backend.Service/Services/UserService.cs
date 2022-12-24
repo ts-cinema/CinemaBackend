@@ -26,8 +26,10 @@ namespace Cinema.Backend.Service.Services
             _configuration = configuration;
         }
 
-        public async Task ChangePasswordAsync(UserChangePasswordRequest request, string loggedUserId)
+        public async Task ChangeUserInfoAsync(UserChangeInformationRequest request, string loggedUserId)
         {
+            // change password
+
             User user = await _userManager.FindByIdAsync(loggedUserId);
 
             IdentityResult result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
@@ -38,13 +40,10 @@ namespace Cinema.Backend.Service.Services
                 string errorMessage = string.Join('\n', errors);
                 throw new ArgumentException(errorMessage);
             }
-        }
 
-        public async Task ChangeEmailAsync(UserChangeEmailRequest request, string loggedUserId)
-        {
-            User user = await _userManager.FindByIdAsync(loggedUserId);
+            //change email
 
-            IdentityResult result = await _userManager.SetEmailAsync(user, request.Email);
+            result = await _userManager.SetEmailAsync(user, request.Email);
 
             if (!result.Succeeded)
             {

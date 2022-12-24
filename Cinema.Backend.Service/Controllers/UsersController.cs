@@ -26,22 +26,13 @@ namespace Cinema.Backend.Service.Controllers
             }
         }
 
-        [HttpPost("change-password")]
+        [HttpPost("change-info")]
         [Authorize(Roles = $"{Roles.ADMINISTRATOR},{Roles.REGISTERED_USER}")]
-        public async Task<IActionResult> ChangePassword([FromBody] UserChangePasswordRequest request)
+        public async Task<IActionResult> ChangeInformation([FromBody] UserChangeInformationRequest request)
         {
-            await _userService.ChangePasswordAsync(request, _loggedUserId);
+            await _userService.ChangeUserInfoAsync(request, _loggedUserId);
 
-            return Ok("Password was successfully changed.");
-        }
-
-        [HttpPost("change-email")]
-        [Authorize(Roles = $"{Roles.ADMINISTRATOR},{Roles.REGISTERED_USER}")]
-        public async Task<IActionResult> ChangeEmail([FromBody] UserChangeEmailRequest request)
-        {
-            await _userService.ChangeEmailAsync(request, _loggedUserId);
-
-            return Ok("Email was successfully changed.");
+            return Ok("User information was successfully changed.");
         }
 
         [HttpGet]

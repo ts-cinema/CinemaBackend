@@ -154,6 +154,47 @@ namespace Cinema.Backend.Service.Controllers
         }
 
         /// <summary>
+        /// GET: tickets/user/{id}
+        /// </summary>
+        [HttpGet("user/{id}")]
+        [Authorize(Roles = $"{Roles.REGISTERED_USER}")]
+        [ProducesResponseType(typeof(List<Ticket>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesErrorResponseType(typeof(void))]
+        public async Task<ActionResult<List<Ticket>>> GetTicketsForUser([FromRoute] Guid id)
+        {
+            var tickets = new List<Ticket>();
+
+            try
+            {
+                _logger.LogDebug($"{nameof(Get)} invoked.");
+
+                // Get the connection string
+                var connectionString = _configuration.GetMongoConnectionString();
+                var databaseName = _configuration.GetMongoDatabaseName();
+
+                using (var unitOfWork = new UnitOfWork(connectionString, databaseName))
+                {
+                    // Get the organization
+                    tickets = await unitOfWork.Tickets.GetAsync("user_id", id.ToString());
+                    if (tickets == null)
+                    {
+                        throw new ObjectNotFoundException($"Tickets with the specified user ID could not be found (ID: {id.ToString("N")}).");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, $"Web API {nameof(Get)} threw an exception.");
+                throw;
+            }
+
+            return tickets;
+        }
+
+        /// <summary>
         /// POST: tickets
         /// </summary>
         [HttpPost]
